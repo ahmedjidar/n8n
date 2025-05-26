@@ -1,0 +1,1030 @@
+{
+  "name": "Smart CRM Deals Autofill",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "has:attachment"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -420,
+        580
+      ],
+      "id": "1345d03f-6b63-40ed-a2a4-8e3e9ba8ce55",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JXng1UfrQhna7oOC",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ Object.keys($binary)[0] }}",
+        "name": "={{ Object.values($binary)[0].fileName.slice(0, Object.values($binary)[0].fileName.lastIndexOf('.')) }}_{{$now.format('YYYY-MM-DD')}}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1lVurb3dcN087tRdgx4Oc5c-eBS5H8xnN",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1lVurb3dcN087tRdgx4Oc5c-eBS5H8xnN"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        240,
+        160
+      ],
+      "id": "e78d9df7-29ea-4bd2-8c93-8c0512c417c8",
+      "name": "Google Drive",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "notesInFlow": false,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "9VW1kKKBv33uwjv0",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2e8467db-9347-4878-a4eb-e7d1e3eed179",
+              "leftValue": "={{ $json.hasValidInvoice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        580
+      ],
+      "id": "e362eaad-8dde-47d3-b3aa-a25f774acfab",
+      "name": "Filter",
+      "alwaysOutputData": false,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combined Splitter + Validator Function Node\nconst allowedMimeTypes = [\n  \"text/plain\", \"text/html\", \"text/rtf\", \"application/rtf\", \"application/msword\", \"application/pdf\",\n  \"application/vnd.ms-excel\", \n  \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\n  \"application/vnd.ms-powerpoint\", \"text/csv\", \n  \"application/xml\", \"application/ubl+xml\", \"application/zip\",\n  \"image/svg+xml\", \"image/jpeg\", \"image/png\"\n];\n\nconst invoicePatterns = {\n  filename: /\\b(invoice|inv[-_]?|bill|statement|payment|tax|credit[-_]?memo|debit[-_]?note)\\b/i,\n  subject: /(invoice\\s*#?\\s*\\d+|inv[-_]?|(payment|amount)\\s+(due|owed)|total\\s+payable|due\\s+date?)/i,\n  text: /(invoice\\s*#?\\s*\\d+|total\\s+.*?\\bdue\\b|subtotal|tax\\s+amount|payment\\s+(terms|due))/i\n};\n\nconst newItems = [];\n\n// Process original items\nfor (const originalItem of $input.all()) {\n  // Split attachments\n  const attachments = Object.keys(originalItem.binary || {})\n    .filter(key => key.startsWith('attachment_'));\n\n  // Create one item per attachment with validation\n  for (const attachmentKey of attachments) {\n    const attachment = originalItem.binary[attachmentKey];\n    const mimeType = attachment.mimeType;\n    \n    // Clone original JSON data\n    const newItem = {\n      json: { ...originalItem.json },\n      binary: { [attachmentKey]: attachment }\n    };\n\n    // Add validation status\n    newItem.json.hasValidInvoice = allowedMimeTypes.includes(mimeType) && (\n      invoicePatterns.filename.test(attachment.fileName || \"\") ||\n      invoicePatterns.subject.test(newItem.json.subject || \"\") ||\n      invoicePatterns.text.test((newItem.json.text?.substring(0, 500) || \"\"))\n    );\n\n    newItems.push(newItem);\n  }\n}\n\nreturn newItems;\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        580
+      ],
+      "id": "f3dd275c-f872-444a-9d9b-ad8f6dfb8cc8",
+      "name": "Code",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "content": "    Test with Edge Cases:\n\n        Blank PDFs, scanned invoices, multi-page files.\n\n    Rate Limit OCR:\n\n        Add a Delay Node before OCR to avoid hitting Google’s API quotas.\n\n    Cache Results:\n\n        Use Google Sheets to log processed files by messageId to avoid reprocessing.",
+        "height": 280,
+        "width": 720
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        60
+      ],
+      "id": "b0eab0a0-bdae-4240-a7b8-319df6bd7c7a",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ Object.values($binary)[0].mimeType }}",
+                    "rightValue": "image/png",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "9764e750-b512-44f3-88ec-79fb32e4cebd"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d6f8305a-b6b4-4233-af57-0421b8bf9719",
+                    "leftValue": "={{ Object.values($binary)[0].mimeType }}",
+                    "rightValue": "image/jpeg",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "034b0917-f00e-44a5-b042-b8dd7509d8ef",
+                    "leftValue": "={{ Object.values($binary)[0].mimeType }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8aad8d03-d29b-43fd-95e2-7d0bc1cc81ab",
+                    "leftValue": "={{ Object.values($binary)[0].mimeType }}",
+                    "rightValue": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c0456847-0a17-40e0-805a-5d5396accfdb",
+                    "leftValue": "={{ Object.values($binary)[0].mimeType }}",
+                    "rightValue": "application/vnd.ms-excel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "281cfea6-e79b-4f12-ad37-46e33b836671",
+                    "leftValue": "={{ Object.values($binary)[0].mimeType }}",
+                    "rightValue": "text/csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "89236a35-f711-4b8c-a037-3aaba5aa95d7",
+                    "leftValue": "={{ Object.values($binary)[0].mimeType }}",
+                    "rightValue": "text/plain",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        240,
+        480
+      ],
+      "id": "3fe1d71f-c3a2-4c6c-8fa9-70a0edb8d6f5",
+      "name": "Switch1",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "={{ Object.keys($binary)[0] }}",
+        "destinationKey": "={{ Object.keys($binary)[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        680,
+        680
+      ],
+      "id": "ad0377c3-2add-432e-8371-4addae2be19a",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "={{ Object.keys($binary)[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        880,
+        680
+      ],
+      "id": "aefaad13-147c-4c2a-9341-fad6d2624b63",
+      "name": "Extract from File2"
+    },
+    {
+      "parameters": {
+        "operation": "xls",
+        "binaryPropertyName": "={{ Object.keys($binary)[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        880,
+        480
+      ],
+      "id": "1a6061a0-268c-453b-bfe0-a2d36a9bee45",
+      "name": "Extract from File3"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "={{ Object.keys($binary)[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        680,
+        480
+      ],
+      "id": "32d789a0-7a78-4a9e-8090-099f2e022b22",
+      "name": "Extract from File5"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dc4c07df-26bd-45e4-9eb9-d210afd71039",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "null",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "9c7bd3f9-9416-44f6-a06b-2e5fe33a0fcb",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        160
+      ],
+      "id": "5f8a175f-a7ca-44c4-ba38-bcf03bdc3148",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst output = [];\nconst errors = [];\n\nconst allowedMimeTypes = new Set([\n    'application/pdf',\n    'image/gif',\n    'image/png',\n    'image/jpeg',\n    'image/tiff',\n    'image/bmp'\n]);\n\nfor (const item of items) {\n    try {\n        // Check binary existence\n        if (!item?.binary) {\n            errors.push(`Item ${items.indexOf(item)}: Missing binary data`);\n            continue;\n        }\n\n        // Check attachment existence\n          const attachment = Object.values(item.binary)[0];\n        if (!attachment) {\n            errors.push(`Item ${items.indexOf(item)}: Missing attachment`);\n            continue;\n        }\n\n        // Check MIME type validity\n        const mimeType = attachment?.mimeType?.toLowerCase();\n        if (!mimeType) {\n            errors.push(`Item ${items.indexOf(item)}: Missing MIME type`);\n            continue;\n        }\n\n        if (!allowedMimeTypes.has(mimeType)) {\n            errors.push(`Item ${items.indexOf(item)}: Invalid MIME type '${mimeType}'`);\n            continue;\n        }\n\n        output.push(item.binary);\n    } catch (error) {\n        errors.push(`Item ${items.indexOf(item)}: Unexpected error - ${error.message}`);\n    }\n}\n\nif (errors.length > 0) {\n  return {output, errors};\n}\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        160
+      ],
+      "id": "b6a7304d-febe-4de8-9147-47524471e5e7",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "content": "## OCR \nOCR Dedicated **Fallback** Node",
+        "height": 280,
+        "width": 780,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        60
+      ],
+      "id": "2bc57171-c855-4dcb-b735-97b9d4d9843e",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ocr.space/parse/image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "K88897872888957"
+            },
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "base64Image",
+              "value": "=data:{{ Object.values($json)[0].mimeType }};base64,{{ Object.values($json)[0].data }}"
+            },
+            {
+              "name": "language",
+              "value": "eng"
+            },
+            {
+              "name": "detectOrientation",
+              "value": "true"
+            },
+            {
+              "name": "isTable",
+              "value": "true"
+            },
+            {
+              "name": "filetype",
+              "value": "={{ Object.values($json)[0].fileExtension.toUpperCase() }}"
+            },
+            {
+              "name": "scale",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        160
+      ],
+      "id": "a2527aa8-9787-4cce-9d42-3d7bd83b34e4",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "={{ Object.keys($binary)[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        680,
+        160
+      ],
+      "id": "d2c40121-6748-4dab-945d-69658b2e4efb",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "height": 280,
+        "width": 680,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        500,
+        60
+      ],
+      "id": "f4801e98-0ba0-4446-9ccc-9e2a6fa2112e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "height": 840,
+        "width": 760,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        60
+      ],
+      "id": "6c72965e-58fc-42e5-9bce-04215be80187",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "height": 280,
+        "width": 340
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        140,
+        60
+      ],
+      "id": "1e65a864-4205-4c44-9824-c3bbf6c18f97",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "height": 540,
+        "width": 1480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        500,
+        360
+      ],
+      "id": "d918081f-73f2-4f87-9b19-49b4a00bdeea",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "height": 540,
+        "width": 1080
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        360
+      ],
+      "id": "a85daa50-9a95-404c-9115-03a3fe55ae78",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// // 1) grab all incoming items\n// const all = $input.all();\n\n// // 2) define your priority list of text‐fields\n// const keys = ['attachment_0', 'ParsedText', 'text'];\n\n// // 3) map each item to a unified shape\n// const unified = all.map(item => {\n//   const data = item.json;\n\n//   // a) tables (arrays) get wrapped under .json.table\n//   if (Array.isArray(data)) {\n//     return { json: { table: data } };\n//   }\n\n//   // b) objects → look for your keys in order\n//   if (data && typeof data === 'object') {\n//     for (const key of keys) {\n//       if (key in data && typeof data[key] === 'string') {\n//         return { json: { text: data[key] } };\n//       }\n//     }\n//   }\n\n//   // c) fallback → raw\n//   return { json: { raw: data } };\n// });\n\n// // 4) return the unified items\n// return unified;\n\n// In \"Run For Each Item\" mode, there's only $input.item.json\nconst data = $input.item.json;\nconst keys = ['attachment_0','ParsedText','text'];\n\n// table?\nif (Array.isArray(data)) {\n  return { json: { table: data } };\n}\n\n// look for your prioritized text fields\nfor (const key of keys) {\n  if (key in data && typeof data[key] === 'string') {\n    return { json: { text: data[key] } };\n  }\n}\n\n// fallback\nreturn { json: { raw: data } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        580
+      ],
+      "id": "4cb6aa3c-021b-4bed-b1f9-7c70465c20df",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text || $json.raw }}",
+        "options": {
+          "systemMessage": "="
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        2240,
+        200
+      ],
+      "id": "b7d2c8dc-0ec7-46c6-89a0-66adb7cbccf4",
+      "name": "Salesforce AI Agent",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2080,
+        400
+      ],
+      "id": "d0f193d1-3a7b-45b4-839e-59b5f3123a29",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ZkwLXoxjM9OEf1KH",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Agent Prompt\nYou are a helpful Salesforce assistant. You will receive new invoice details every time. You have to extract relevant information from the invoice details and upsert (create or update) necessary information in the chosen dedicated Salesforce objects based on the information type and purpose. You have to be Extremely Accurate. Always use the contact's, campaign's and deal's last updated information.",
+        "height": 200,
+        "width": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2780,
+        60
+      ],
+      "id": "569b8874-2e7b-4565-b002-f975d72a9a5e",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  \"ParsedText\": $input.first().json.ParsedResults[0].ParsedText\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        160
+      ],
+      "id": "cdbc8990-c68c-4a21-b7dd-48eecf2f096e",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "46c1e1bb-fccf-4bdb-83b7-2e32ec59ce0a",
+              "leftValue": "={{ $json.raw }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "0c715bab-348d-4816-b713-dcd96c7c4918",
+              "leftValue": "={{ $json.raw }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        580
+      ],
+      "id": "1b2008e6-17c3-45b1-a505-35b9049eb077",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2100,
+        560
+      ],
+      "id": "62980063-6e3d-4107-9559-dfcdf7b6a6e5",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        2400,
+        420
+      ],
+      "id": "a1cb0870-1524-4d46-b204-6b37428f2e60",
+      "name": "Postgres"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        []
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File2": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File3": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File5": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Salesforce AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Salesforce AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Salesforce AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "YCOysKkaN6hZWAXp"
+  },
+  "versionId": "0ad51fce-6b93-44cc-9f2f-b7594a5caa96",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "159344d4b7408237b7313b9d1844ebadedeae7fad868be05a3c21a6f2934e8a4"
+  },
+  "id": "oABCfQMRo3awi1Xi",
+  "tags": []
+}

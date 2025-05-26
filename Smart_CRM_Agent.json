@@ -1,0 +1,631 @@
+{
+  "name": "Smart CRM Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -180,
+        200
+      ],
+      "id": "1a138305-fbe6-4ed3-93c9-8474b1aa1268",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ZkwLXoxjM9OEf1KH",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -180,
+        340
+      ],
+      "id": "e0b8c5cf-85f4-42b6-88d1-c3b472f3f1be",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "06849338-116f-4689-8c16-3ce9442616a9",
+      "name": "When chat message received",
+      "webhookId": "60145053-f09d-4383-b724-eca13de0a270"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', `From Jidar (Me), at AJ Corp, Senior Leader, pixelatedproverbs@gmail.com`, 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        440,
+        200
+      ],
+      "id": "46fe4717-fe3c-4616-9e2a-3dca5a950c38",
+      "name": "Notify",
+      "webhookId": "be369d73-37b9-41a7-b2e3-9767c0d3863d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JXng1UfrQhna7oOC",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## System Test Prompt\n*I want to manage a sales process in Salesforce. Please help me with the following tasks (All of your choice, no data available for now)*:\n\n- **Create a New Account**: Provide the account name, account number, annual revenue, industry, and contact details.\n\n- **Create a New Contact**: Provide the first name, last name, email, phone number, and title for a contact related to the new account.\n\n- **Create a New Opportunity**: Specify details like the opportunity name, amount, close date, and description related to the account.\n\n- **Update the Opportunity** (your choice of data): Change the amount and close date of the opportunity created earlier.\n\n- **Delete the Contact** (yes I confirm already): Remove the contact created in the second step.\n\n- **Retrieve All Accounts**: Provide a query to retrieve all accounts and their basic information.\n\n- **Search for a Specific Opportunity**: Using a name or criteria, look up a specific opportunity and return its details.\n\n- **Notify me by Gmail** when you're done with short message.\n\n- All operations' detailed logs must be sent to the **Discord** channel (Amount in $).\n\n*Please perform these tasks and confirm their success or failure along with any relevant information.*",
+        "height": 660,
+        "width": 600,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        560,
+        0
+      ],
+      "id": "dc3f6f80-651b-4057-9f30-42bdff421aea",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a helpful Salesforce assistant. Always rely on most recent data for updates and deletion."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        40,
+        0
+      ],
+      "id": "809890cb-cba1-4761-b222-28b8e4e59d2d",
+      "name": "Salesforce CRM AI Agent",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "lastname": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Last_Name', ``, 'string') }}",
+        "additionalFields": {
+          "birthdate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Birth_Date', ``, 'string') }}",
+          "department": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Department', ``, 'string') }}",
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', `Brief summary (1 line max) about the contact based on your analysis.`, 'string') }}",
+          "email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email', ``, 'string') }}",
+          "fax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Fax', ``, 'string') }}",
+          "firstName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('First_Name', ``, 'string') }}",
+          "phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone', ``, 'string') }}",
+          "salutation": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Salutation', `Professional salutation (Not an email format!), keep it super brief.`, 'string') }}",
+          "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Title', `Professional Title for the contact`, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.salesforceTool",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        200
+      ],
+      "id": "9085eb30-ba35-4864-b2c0-f8005e844086",
+      "name": "Create_Contact",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "siK8opT8v5TwPEFD",
+          "name": "Salesforce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "update",
+        "contactId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Contact_ID', `If you don't have the account ID, use the search: query tool to select Id based on the given name or any other indicative criteria.`, 'string') }}",
+        "updateFields": {
+          "birthdate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Birth_Date', ``, 'string') }}",
+          "department": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Department', ``, 'string') }}",
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}",
+          "email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email', ``, 'string') }}",
+          "fax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Fax', ``, 'string') }}",
+          "firstName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('First_Name', ``, 'string') }}",
+          "lastName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Last_Name', ``, 'string') }}",
+          "otherCountry": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Other_Country', ``, 'string') }}",
+          "otherState": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Other_State', ``, 'string') }}",
+          "phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone', ``, 'string') }}",
+          "salutation": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Salutation', ``, 'string') }}",
+          "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Title', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.salesforceTool",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        340
+      ],
+      "id": "ec52232b-df0a-4cc6-ad1e-d9f94d9a007b",
+      "name": "Update_Contact",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "siK8opT8v5TwPEFD",
+          "name": "Salesforce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "opportunity",
+        "name": "={{ $fromAI(\"Name\", \"chosen opportunity name\") }}",
+        "closeDate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Close_Date', ``, 'string') }}",
+        "stageName": "Prospecting",
+        "additionalFields": {
+          "amount": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Amount', `Total deal amount.`, 'number') }}",
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', `Services discussed.`, 'string') }}",
+          "nextStep": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Next_Step', ``, 'string') }}",
+          "phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone', ``, 'string') }}",
+          "probability": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Probability', ``, 'number') }}",
+          "type": "Business"
+        }
+      },
+      "type": "n8n-nodes-base.salesforceTool",
+      "typeVersion": 1,
+      "position": [
+        280,
+        200
+      ],
+      "id": "8a1de483-91b2-4273-a913-ed04e80d2054",
+      "name": "Create_Opportunity",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "siK8opT8v5TwPEFD",
+          "name": "Salesforce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "account",
+        "name": "={{ $fromAI(\"Name\", \"Selected account name\") }}",
+        "additionalFields": {
+          "accountNumber": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Account_Number', ``, 'string') }}",
+          "annualRevenue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Annual_Revenue', `This is the annual revenue of an account, it has nothing to do with opportunity/deal total amounts!`, 'number') }}",
+          "customFieldsUi": {
+            "customFieldsValues": [
+              {
+                "fieldId": "Active__c",
+                "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Value', ``, 'string') }}"
+              },
+              {
+                "fieldId": "UpsellOpportunity__c",
+                "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Value', ``, 'string') }}"
+              },
+              {
+                "fieldId": "CustomerPriority__c",
+                "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Value', ``, 'string') }}"
+              }
+            ]
+          },
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}",
+          "fax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Fax', ``, 'string') }}",
+          "industry": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Industry', ``, 'string') }}",
+          "numberOfEmployees": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Number_Of_Employees', ``, 'number') }}",
+          "phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone', ``, 'string') }}",
+          "website": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Website', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.salesforceTool",
+      "typeVersion": 1,
+      "position": [
+        120,
+        200
+      ],
+      "id": "8c1b1cca-25b1-47d6-81dd-52ab5cfd1bb5",
+      "name": "Create_Account",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "siK8opT8v5TwPEFD",
+          "name": "Salesforce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "account",
+        "operation": "update",
+        "accountId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Account_ID', `If you don't have the account ID, use the search: query tool to select Id based on the given name or any other indicative criteria.`, 'string') }}",
+        "updateFields": {
+          "accountNumber": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Account_Number', ``, 'string') }}",
+          "annualRevenue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Annual_Revenue', ``, 'number') }}",
+          "customFieldsUi": {
+            "customFieldsValues": [
+              {
+                "fieldId": "Active__c",
+                "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Value', ``, 'string') }}"
+              },
+              {
+                "fieldId": "UpsellOpportunity__c",
+                "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Value', ``, 'string') }}"
+              },
+              {
+                "fieldId": "CustomerPriority__c",
+                "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Value', ``, 'string') }}"
+              }
+            ]
+          },
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}",
+          "fax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Fax', ``, 'string') }}",
+          "industry": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Industry', ``, 'string') }}",
+          "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Name', ``, 'string') }}",
+          "numberOfEmployees": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Number_Of_Employees', ``, 'number') }}",
+          "phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone', ``, 'string') }}",
+          "website": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Website', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.salesforceTool",
+      "typeVersion": 1,
+      "position": [
+        120,
+        340
+      ],
+      "id": "fcc0733f-e750-42dc-9d7f-1ad94489c04a",
+      "name": "Update_Account",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "siK8opT8v5TwPEFD",
+          "name": "Salesforce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "opportunity",
+        "operation": "update",
+        "opportunityId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Opportunity_ID', `If you don't have the opportunity ID, use the search: query tool to select Id based on the given name, or phone or any other indicative criteria.`, 'string') }}",
+        "updateFields": {
+          "amount": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Amount', ``, 'number') }}",
+          "closeDate": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Close_Date', ``, 'string') }}",
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}",
+          "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Name', ``, 'string') }}",
+          "nextStep": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Next_Step', ``, 'string') }}",
+          "phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone', ``, 'string') }}",
+          "probability": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Probability', ``, 'number') }}"
+        }
+      },
+      "type": "n8n-nodes-base.salesforceTool",
+      "typeVersion": 1,
+      "position": [
+        280,
+        340
+      ],
+      "id": "d4a6bf65-9696-41a1-a626-d235aed08787",
+      "name": "Update_Opportunity",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "siK8opT8v5TwPEFD",
+          "name": "Salesforce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "delete",
+        "contactId": "={{ $fromAI('Contact_ID', `Use the search: query tool first to select Contact_Id based on the given email.`, 'string') }}"
+      },
+      "type": "n8n-nodes-base.salesforceTool",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        480
+      ],
+      "id": "df54f98d-7557-40dc-bae0-c19eb8eb9beb",
+      "name": "Delete_Contact",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "siK8opT8v5TwPEFD",
+          "name": "Salesforce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "account",
+        "operation": "delete",
+        "accountId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Account_ID', `If you don't have the account ID, use the search: query tool to select Id based on the given name, or phone or any other indicative criteria.`, 'string') }}"
+      },
+      "type": "n8n-nodes-base.salesforceTool",
+      "typeVersion": 1,
+      "position": [
+        120,
+        480
+      ],
+      "id": "c9b7595a-b935-47d1-8706-e4c22c46a451",
+      "name": "Delete_Account",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "siK8opT8v5TwPEFD",
+          "name": "Salesforce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "opportunity",
+        "operation": "delete",
+        "opportunityId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Opportunity_ID', `If you don't have the opportunity ID, use the search: query tool to select Id based on the given name, or phone or any other indicator.`, 'string') }}"
+      },
+      "type": "n8n-nodes-base.salesforceTool",
+      "typeVersion": 1,
+      "position": [
+        280,
+        480
+      ],
+      "id": "9dddfe6e-d6ba-4f2b-b2ef-4beb5ee8979d",
+      "name": "Delete_Opportunity",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "siK8opT8v5TwPEFD",
+          "name": "Salesforce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "search",
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.salesforceTool",
+      "typeVersion": 1,
+      "position": [
+        440,
+        340
+      ],
+      "id": "79a34fd6-b671-46e0-98ad-70358c2f80b1",
+      "name": "Query_Search",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "siK8opT8v5TwPEFD",
+          "name": "Salesforce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "1356676453823021317",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1360261067707781340",
+          "mode": "list",
+          "cachedResultName": "smart-crm-logs",
+          "cachedResultUrl": "https://discord.com/channels/1356676453823021317/1360261067707781340"
+        },
+        "content": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', `Make the logs message look very insightful and aesthetic.`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discordTool",
+      "typeVersion": 2,
+      "position": [
+        440,
+        480
+      ],
+      "id": "fa95f83e-e29d-42a4-8dcf-6fb82f3c6b5a",
+      "name": "Discord",
+      "webhookId": "7a93d42c-992c-4113-86d4-a99dfd89fdce",
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "TAk4Py80CxtRpOZ7",
+          "name": "Discord account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create_Contact": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update_Contact": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create_Opportunity": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create_Account": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update_Account": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update_Opportunity": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete_Contact": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete_Account": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete_Opportunity": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query_Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord": {
+      "ai_tool": [
+        [
+          {
+            "node": "Salesforce CRM AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1b1e1798-0308-455b-a232-4491f4b52375",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "159344d4b7408237b7313b9d1844ebadedeae7fad868be05a3c21a6f2934e8a4"
+  },
+  "id": "kG4HPqAyvBxdmeF4",
+  "tags": []
+}
